@@ -9,11 +9,11 @@ public class Main {
 
     // 프로그램 진입점
     public static void main(String[] args) throws Exception {
-
+        int port = 9990;
         // 포트 바인딩: 8080 포트에서 TCP 연결을 받을 준비
         // 자원 해제: try 블록 종료 시 ServerSocket 자동으로 닫기
-        try (ServerSocket serverSocket = new ServerSocket(8080)) {
-            System.out.println("8080 서버 시작");
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
+            System.out.println(port + " 서버 시작");
 
             // TCP 연결 수락·블로킹: 연결이 들어올 때까지 대기
             // 자원 해제: try 블록 종료 시 연결된 Socket 자동으로 닫기
@@ -47,15 +47,45 @@ public class Main {
                     System.out.println("헤더: " + headerLine);
                 }
 
+                //응답은 3부분으로 나눈다
+                String[] requestParts= requestLine.split(" ");
+
+                int statusCode;
+                String statusText;
+                String responseBody;
+
+                //나눠진 응답이 3개가 아니라면 400 호출
+                if(requestParts.length != 3){
+                    statusCode = 400;
+                    statusText = "Bad Request";
+                    responseBody = "잘못된 요청입니다.";
+                }else{
+                    String method = requestParts[0];
+                    String path = requestParts[1];
+
+                    System.out.println("메소드: " + method);
+                    System.out.println("경로: " + path);
+
+                    if("/hello".equals(path)){
+                        statusCode = 200;
+                        statusText = "OK";
+                        responseBody = "hello!";
+                    }else{
+                        statusCode = 404;
+                        statusText = "Not Found";
+                        responseBody = "찾을 수 없는 경로입니다.";
+                    }
+                }
+
                 // 문자 인코딩: 응답 본문을 UTF-8 바이트 배열로 변환
                 byte[] body =
-                        "Java HTTP".getBytes(StandardCharsets.UTF_8);
+                        responseBody.getBytes(StandardCharsets.UTF_8);
 
                 // HTTP 응답 구조: 상태 줄 → 헤더 → 빈 줄
                 // \r\n은 HTTP에서 사용하는 줄바꿈
                 // Content-Length는 응답 본문의 바이트 수
                 String responseHeaders =
-                        "HTTP/1.1 200 OK\r\n"
+                        "HTTP/1.1 " + statusCode + " " + statusText + "\r\n"
                                 + "Content-Type: text/plain; charset=UTF-8\r\n"
                                 + "Content-Length: " + body.length + "\r\n"
                                 + "Connection: close\r\n"
